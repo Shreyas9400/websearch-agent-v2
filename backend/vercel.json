@@ -1,1 +1,48 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "main.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "main.py"
+        }
+    ],
+    "env": {
+        "PYTHONUNBUFFERED": "1"
+    }
+}
+
+# 2. Create requirements.txt (if not exists)
+fastapi==0.68.0
+pydantic==1.8.2
+uvicorn==0.15.0
+python-multipart==0.0.5
+requests
+gradio==4.44.1
+beautifulsoup4
+urllib3
+trafilatura
+huggingface_hub
+sentence-transformers
+torch
+python-dotenv
+lxml
+lxml_html_clean
+tenacity
+scrapy
+newspaper3k
+PyPDF2
+html2text
+groq
+faiss-cpu
+mistralai
+rank_bm25
+spacy
+textblob
+
 
