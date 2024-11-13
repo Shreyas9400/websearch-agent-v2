@@ -1,15 +1,14 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from enum import Enum
-import uvicorn
 import logging
-import asyncio
 from datetime import datetime
+import asyncio
 
 # Import your ChatBot class and other necessary components
-from chatbot import ChatBot, ScoringMethod, SafeSearch, QueryType
+from ..chatbot import ChatBot, ScoringMethod, SafeSearch, QueryType
 
 # Configure logging
 logging.basicConfig(
@@ -25,10 +24,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Configure CORS - Update with your Vercel frontend URL when deployed
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Modify this in production
+    allow_origins=[
+        "http://localhost:3000",  # Local development
+        "https://your-frontend-url.vercel.app"  # Replace with your frontend Vercel URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,7 +52,7 @@ class SearchMode(str, Enum):
     WEB_ONLY = "Web Search Only"
 
     def __str__(self):
-        return self.value  # This will return the string value instead of the enum name
+        return self.value
 
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User's message")
@@ -77,27 +79,24 @@ async def chat_endpoint(request: ChatRequest):
     """
     try:
         logger.info(f"Received chat request: {request.message}")
-        logger.info(f"Search mode requested: {request.search_mode.value}")  # Use .value
-        logger.info(f"Raw search mode value: {request.search_mode.value}")  # Use .value
+        logger.info(f"Search mode requested: {request.search_mode.value}")
         force_web_search = request.search_mode == SearchMode.WEB_ONLY
         logger.info(f"Force web search mode: {force_web_search}")
         
         # Get response from chatbot
         start_time = datetime.now()
-        response = await asyncio.create_task(
-            chatbot.get_response(
-                query=request.message,
-                history=request.history,
-                num_results=request.num_results,
-                max_chars=request.max_chars,
-                score_threshold=request.score_threshold,
-                temperature=request.temperature,
-                scoring_method=request.scoring_method,
-                selected_engines=request.engines,
-                safe_search=request.safe_search,
-                language=request.language.split(" - ")[0],
-                force_web_search=force_web_search  # This should now correctly pass True for Web Search Only
-            )
+        response = await chatbot.get_response(
+            query=request.message,
+            history=request.history,
+            num_results=request.num_results,
+            max_chars=request.max_chars,
+            score_threshold=request.score_threshold,
+            temperature=request.temperature,
+            scoring_method=request.scoring_method,
+            selected_engines=request.engines,
+            safe_search=request.safe_search,
+            language=request.language.split(" - ")[0],
+            force_web_search=force_web_search
         )
         end_time = datetime.now()
         
@@ -158,11 +157,14 @@ async def get_available_engines():
             detail=f"Error fetching available engines: {str(e)}"
         )
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        workers=4
-    )
+# Root endpoint for Vercel
+@app.get("/")
+async def root():
+    """
+    Root endpoint to verify API is running
+    """
+    return {
+        "status": "API is running",
+        "version": app.version,
+        "timestamp": datetime.now().isoformat()
+    }
